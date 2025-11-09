@@ -1,64 +1,160 @@
-import Image from "next/image";
+import Link from 'next/link';
+import { createClient } from '@/lib/supabase/server';
 
-export default function Home() {
+export default async function HomePage() {
+  const supabase = await createClient();
+
+  // Get recent terms
+  const { data: recentTerms } = await supabase
+    .from('terms')
+    .select(`
+      id,
+      slug,
+      translations:term_translations!inner (
+        language_code,
+        title
+      )
+    `)
+    .eq('translations.language_code', 'vi')
+    .order('updated_at', { ascending: false })
+    .limit(10);
+
+  // Get all categories
+  const { data: categories } = await supabase
+    .from('categories')
+    .select(`
+      id,
+      slug,
+      translations:category_translations!inner (
+        language_code,
+        name,
+        description
+      )
+    `)
+    .eq('translations.language_code', 'vi');
+
   return (
-    <div className="flex min-h-screen items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex min-h-screen w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
+    <div className="min-h-screen bg-gray-50">
+      {/* Header */}
+      <header className="bg-white shadow-sm">
+        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+          <div className="flex h-16 items-center justify-between">
+            <div className="flex items-center">
+              <h1 className="text-2xl font-bold text-gray-900">
+                IT Dictionary
+              </h1>
+            </div>
+            <nav className="flex space-x-4">
+              <Link
+                href="/search"
+                className="text-sm font-medium text-gray-700 hover:text-gray-900"
+              >
+                Tìm kiếm
+              </Link>
+              <Link
+                href="/categories"
+                className="text-sm font-medium text-gray-700 hover:text-gray-900"
+              >
+                Chuyên mục
+              </Link>
+            </nav>
+          </div>
+        </div>
+      </header>
+
+      {/* Main Content */}
+      <main className="mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8">
+        {/* Hero Section */}
+        <div className="mb-12 text-center">
+          <h2 className="text-4xl font-bold text-gray-900 sm:text-5xl">
+            Từ điển Thuật ngữ CNTT
+          </h2>
+          <p className="mt-4 text-xl text-gray-600">
+            Tra cứu và tìm hiểu các thuật ngữ công nghệ thông tin bằng tiếng Việt
           </p>
         </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
+
+        {/* Search Bar */}
+        <div className="mb-12">
+          <form action="/search" method="get" className="max-w-2xl mx-auto">
+            <div className="flex gap-2">
+              <input
+                type="text"
+                name="q"
+                placeholder="Tìm kiếm thuật ngữ..."
+                className="flex-1 rounded-lg border border-gray-300 px-4 py-3 text-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-500"
+              />
+              <button
+                type="submit"
+                className="rounded-lg bg-blue-600 px-6 py-3 text-lg font-semibold text-white hover:bg-blue-500"
+              >
+                Tìm kiếm
+              </button>
+            </div>
+          </form>
         </div>
+
+        {/* Categories */}
+        {categories && categories.length > 0 && (
+          <div className="mb-12">
+            <h3 className="mb-6 text-2xl font-bold text-gray-900">
+              Chuyên mục
+            </h3>
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+              {categories.map((category) => {
+                const viName = Array.isArray(category.translations)
+                  ? category.translations.find((t: any) => t.language_code === 'vi')?.name
+                  : '';
+                const viDescription = Array.isArray(category.translations)
+                  ? category.translations.find((t: any) => t.language_code === 'vi')?.description
+                  : '';
+
+                return (
+                  <Link
+                    key={category.id}
+                    href={`/categories/${category.slug}`}
+                    className="rounded-lg border border-gray-200 bg-white p-6 shadow-sm transition-shadow hover:shadow-md"
+                  >
+                    <h4 className="text-lg font-semibold text-gray-900">
+                      {viName}
+                    </h4>
+                    {viDescription && (
+                      <p className="mt-2 text-sm text-gray-600">{viDescription}</p>
+                    )}
+                  </Link>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
+        {/* Recent Terms */}
+        {recentTerms && recentTerms.length > 0 && (
+          <div>
+            <h3 className="mb-6 text-2xl font-bold text-gray-900">
+              Thuật ngữ mới cập nhật
+            </h3>
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+              {recentTerms.map((term) => {
+                const viTitle = Array.isArray(term.translations)
+                  ? term.translations.find((t: any) => t.language_code === 'vi')?.title
+                  : '';
+
+                return (
+                  <Link
+                    key={term.id}
+                    href={`/terms/${term.slug}`}
+                    className="rounded-lg border border-gray-200 bg-white p-6 shadow-sm transition-shadow hover:shadow-md"
+                  >
+                    <h4 className="text-lg font-semibold text-gray-900">
+                      {viTitle}
+                    </h4>
+                  </Link>
+                );
+              })}
+            </div>
+          </div>
+        )}
       </main>
     </div>
   );
